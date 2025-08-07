@@ -1,0 +1,9 @@
+# SMN1 and SMN2 exon coordinates for GRCh38
+# Format: chromosome	start	end	exon_name	score	strand
+# SMN1 gene (5q13.2)
+chr5	70924941	70925001	SMN1_exon7	.	+
+chr5	70924701	70924784	SMN1_exon8	.	+
+
+# SMN2 gene (5q13.2) 
+chr5	69372353	69372413	SMN2_exon7	.	+
+chr5	69372113	69372196	SMN2_exon8	.	+
