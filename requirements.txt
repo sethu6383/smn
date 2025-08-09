@@ -1,11 +1,30 @@
-# SMN CNV Detection Pipeline - Python Dependencies
-# Install with: pip install -r requirements.txt
+# SMN CNV Detection Pipeline V3 - Python Dependencies
+# Install with: pip install -r requirements_v3.txt
 
+# Core scientific computing
 pandas>=1.3.0
 numpy>=1.20.0
-matplotlib>=3.3.0
-seaborn>=0.11.0
 scipy>=1.7.0
 
-# Optional: For improved performance
+# Visualization
+matplotlib>=3.3.0
+seaborn>=0.11.0
+
+# Machine Learning and Advanced Analytics (V3 additions)
+scikit-learn>=1.0.0
+
+# Configuration management (V3 addition)
+PyYAML>=5.4.0
+
+# Optional: Enhanced performance
 # numba>=0.56.0
+
+# Optional: Advanced HMM implementation
+# pomegranate>=0.14.0
+
+# Optional: CBS validation (requires R installation)
+# rpy2>=3.4.0  # For R integration with DNAcopy package
+
+# Development and testing (optional)
+# pytest>=6.0.0
+# pytest-cov>=2.12.0
