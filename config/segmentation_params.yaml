@@ -47,4 +47,260 @@ hmm:
       expected_coverage: 0.0
       coverage_variance: 0.05
       
-    # CN=1 (Heterozygous deletion)
+# SMN CNV Detection Pipeline V3 - Segmentation Parameters
+# Configuration file for CBS and HMM segmentation algorithms
+
+# Circular Binary Segmentation (CBS) Parameters
+cbs:
+  # Statistical significance level for change-point detection
+  alpha: 0.01
+  
+  # Minimum number of markers per segment
+  min_segment_markers: 3
+  
+  # Number of permutations for p-value calculation
+  nperm: 10000
+  
+  # Trimming fraction for outlier removal
+  trim: 0.025
+  
+  # Standard deviation threshold for undoing splits
+  undo_SD: 2.0
+  
+  # Maximum number of splits to undo
+  undo_splits: 4
+  
+  # Additional CBS-specific parameters
+  smooth_region: 10  # Smoothing window for noisy regions
+  min_width: 2       # Minimum width for change-point detection
+
+# Hidden Markov Model (HMM) Parameters  
+hmm:
+  # Number of hidden states (copy number states)
+  n_states: 5
+  
+  # Maximum number of EM iterations
+  max_iter: 100
+  
+  # Convergence tolerance for EM algorithm
+  tolerance: 1e-4
+  
+  # Random seed for reproducibility
+  random_state: 42
+  
+  # State-specific parameters
+  states:
+    # CN=0 (Homozygous deletion)
+    cn0:
+      prior_prob: 0.02
+      expected_coverage: 0.0
+      coverage_variance: 0.05
+      
+    # CN=1 (Heterozygous deletion) 
+    cn1:
+      prior_prob: 0.08
+      expected_coverage: 0.5
+      coverage_variance: 0.1
+      
+    # CN=2 (Normal copy number)
+    cn2:
+      prior_prob: 0.8
+      expected_coverage: 1.0
+      coverage_variance: 0.2
+      
+    # CN=3 (Single copy duplication)
+    cn3:
+      prior_prob: 0.08
+      expected_coverage: 1.5
+      coverage_variance: 0.25
+      
+    # CN=4+ (Multiple copy amplification)
+    cn4:
+      prior_prob: 0.02
+      expected_coverage: 2.0
+      coverage_variance: 0.5
+  
+  # Transition probabilities (persistence vs change)
+  transition:
+    # Self-transition probability (tendency to stay in same state)
+    persistence: 0.9
+    
+    # Distance-based transition decay
+    distance_decay: 0.5
+    
+    # Minimum transition probability
+    min_transition: 0.001
+
+# Control Gene Normalization Parameters
+control_normalization:
+  # Method for normalization factor calculation
+  method: "geometric_mean"  # Options: geometric_mean, median_ratio, tmm, mean
+  
+  # Control gene selection criteria
+  selection:
+    # Minimum mean coverage for control genes
+    min_coverage: 10
+    
+    # Maximum coefficient of variation
+    max_cv: 0.3
+    
+    # Maximum fraction of outlier samples
+    max_outliers: 0.1
+    
+    # Number of control genes to select
+    n_controls: 5
+    
+    # Exclude target genes from control selection
+    exclude_targets: ["SMN1", "SMN2"]
+  
+  # Batch effect detection
+  batch_detection:
+    # P-value threshold for detecting batch effects
+    pvalue_threshold: 0.05
+    
+    # Effect size threshold (eta-squared)
+    effect_size_threshold: 0.1
+
+# Consensus Calling Parameters
+consensus:
+  # Minimum number of algorithms required for consensus
+  min_algorithms: 2
+  
+  # Minimum confidence threshold for high-quality calls
+  confidence_threshold: 0.7
+  
+  # Minimum overlap fraction for segment matching
+  overlap_threshold: 0.5
+  
+  # Maximum copy number difference for consensus
+  max_cn_difference: 1
+  
+  # Algorithm weighting
+  weights:
+    cbs: 0.5    # Weight for CBS results
+    hmm: 0.5    # Weight for HMM results
+  
+  # Quality classification thresholds
+  quality_thresholds:
+    high: 0.9     # High confidence threshold
+    medium: 0.7   # Medium confidence threshold
+    # Below medium = low quality
+
+# Missing Data Handling Parameters
+missing_data:
+  # Default interpolation method
+  method: "hmm"  # Options: linear, knn, rf, median, hmm
+  
+  # Window size for local interpolation methods
+  window_size: 3
+  
+  # Minimum coverage threshold
+  min_coverage: 5
+  
+  # Method-specific parameters
+  knn:
+    n_neighbors: 5
+    weights: "uniform"  # uniform or distance
+  
+  random_forest:
+    n_estimators: 50
+    max_depth: 5
+    min_samples_split: 5
+    random_state: 42
+  
+  # Validation parameters
+  validation:
+    # Fraction of known values to hide for validation
+    validation_fraction: 0.2
+    
+    # Random seed for validation
+    random_state: 42
+
+# Quality Control Thresholds
+quality_control:
+  # Coverage quality thresholds
+  coverage:
+    min_depth: 10        # Minimum read depth
+    min_breadth: 0.8     # Minimum fraction of positions covered
+    max_cv: 2.0          # Maximum coefficient of variation
+  
+  # Segmentation quality thresholds  
+  segmentation:
+    min_segment_length: 2     # Minimum segment length
+    max_segments_per_sample: 20  # Maximum segments per sample
+    min_confidence: 0.3       # Minimum segment confidence
+  
+  # Copy number call quality
+  copy_number:
+    confidence_thresholds:
+      deletion: 0.8       # CN < 2
+      normal: 0.7         # CN = 2  
+      duplication: 0.8    # CN > 2
+    
+    # Clinical significance thresholds
+    clinical_significance:
+      high: ["cn0", "cn1"]      # High clinical significance
+      medium: ["cn3"]           # Medium clinical significance
+      low: ["cn4"]              # Low clinical significance
+
+# Output and Reporting Parameters
+output:
+  # File format preferences
+  formats:
+    tables: "tsv"        # tsv or csv
+    plots: "png"         # png or pdf
+    reports: "html"      # html or json
+  
+  # Plot parameters
+  plotting:
+    dpi: 300
+    figure_size: [12, 8]
+    color_scheme: "viridis"
+    
+  # Reporting detail level
+  detail_level: "comprehensive"  # minimal, standard, comprehensive
+
+# Performance and Computing Parameters  
+performance:
+  # Parallel processing
+  n_jobs: -1           # Number of parallel jobs (-1 = all cores)
+  
+  # Memory management
+  chunk_size: 1000     # Process samples in chunks
+  
+  # Caching
+  enable_cache: true
+  cache_dir: "cache"
+  
+# Advanced Algorithm Parameters (Expert Use)
+advanced:
+  # CBS advanced parameters
+  cbs_advanced:
+    kmax: 25           # Maximum number of change-points
+    delta: 0.01        # Minimum change in test statistic
+    ngrid: 100         # Grid size for optimization
+    
+  # HMM advanced parameters  
+  hmm_advanced:
+    # Emission distribution parameters
+    emission_dist: "gaussian"  # gaussian, poisson, nb
+    
+    # Forward-backward scaling
+    scaling: true
+    
+    # Viterbi beam search width
+    beam_width: 100
+    
+  # Consensus advanced parameters
+  consensus_advanced:
+    # Segment merging parameters
+    merge_adjacent: true
+    merge_threshold: 0.1
+    
+    # Confidence boosting
+    confidence_boost: 0.1
+    
+    # Algorithm-specific bonuses
+    algorithm_bonuses:
+      high_significance: 0.2    # Bonus for highly significant calls
+      missing_data_handling: 0.1 # Bonus for handling missing data
