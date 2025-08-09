@@ -1,0 +1,49 @@
+# Control genes for normalization - GRCh38 coordinates
+# Format: chromosome	start	end	gene_name	score	strand
+# Selected for stable expression and consistent coverage across samples
+
+# GAPDH - Glyceraldehyde-3-phosphate dehydrogenase
+chr12	6534405	6538374	GAPDH	.	-
+
+# ACTB - Actin Beta
+chr7	5527148	5530601	ACTB	.	-
+
+# HPRT1 - Hypoxanthine Phosphoribosyltransferase 1
+chrX	134460432	134502193	HPRT1	.	+
+
+# GUSB - Glucuronidase Beta  
+chr7	65962847	65983940	GUSB	.	-
+
+# TBP - TATA-Box Binding Protein
+chr6	170554299	170572870	TBP	.	+
+
+# YWHAZ - Tyrosine 3-Monooxygenase/Tryptophan 5-Monooxygenase Activation Protein Zeta
+chr8	101929016	101962192	YWHAZ	.	+
+
+# PPIA - Peptidylprolyl Isomerase A (Cyclophilin A)
+chr7	44838788	44846306	PPIA	.	+
+
+# RPL13A - Ribosomal Protein L13a
+chr19	49985260	49989711	RPL13A	.	+
+
+# SDHA - Succinate Dehydrogenase Complex Flavoprotein Subunit A
+chr5	218343	256743	SDHA	.	+
+
+# UBC - Ubiquitin C
+chr12	124911104	124918368	UBC	.	+
+
+# Additional stable housekeeping genes
+# B2M - Beta-2-Microglobulin  
+chr15	44711469	44718877	B2M	.	+
+
+# HMBS - Hydroxymethylbilane Synthase
+chr11	118960138	119003973	HMBS	.	+
+
+# RPLP0 - Ribosomal Protein Lateral Stalk Subunit P0
+chr12	119676272	119679753	RPLP0	.	-
+
+# 18S rRNA genes (multiple copies, using one representative)
+chr21	8219593	8221440	RN18S1	.	+
+
+# TFRC - Transferrin Receptor
+chr3	195783846	195822821	TFRC	.	-
