@@ -1,0 +1,50 @@
+# SMN CNV Detection Pipeline V3 - Segmentation Parameters
+# Configuration file for CBS and HMM segmentation algorithms
+
+# Circular Binary Segmentation (CBS) Parameters
+cbs:
+  # Statistical significance level for change-point detection
+  alpha: 0.01
+  
+  # Minimum number of markers per segment
+  min_segment_markers: 3
+  
+  # Number of permutations for p-value calculation
+  nperm: 10000
+  
+  # Trimming fraction for outlier removal
+  trim: 0.025
+  
+  # Standard deviation threshold for undoing splits
+  undo_SD: 2.0
+  
+  # Maximum number of splits to undo
+  undo_splits: 4
+  
+  # Additional CBS-specific parameters
+  smooth_region: 10  # Smoothing window for noisy regions
+  min_width: 2       # Minimum width for change-point detection
+
+# Hidden Markov Model (HMM) Parameters  
+hmm:
+  # Number of hidden states (copy number states)
+  n_states: 5
+  
+  # Maximum number of EM iterations
+  max_iter: 100
+  
+  # Convergence tolerance for EM algorithm
+  tolerance: 1e-4
+  
+  # Random seed for reproducibility
+  random_state: 42
+  
+  # State-specific parameters
+  states:
+    # CN=0 (Homozygous deletion)
+    cn0:
+      prior_prob: 0.02
+      expected_coverage: 0.0
+      coverage_variance: 0.05
+      
+    # CN=1 (Heterozygous deletion)
