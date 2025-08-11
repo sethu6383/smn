@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# run_pipeline_v3.sh - Master script for SMN CNV Detection Pipeline V3
-# Usage: ./run_pipeline_v3.sh <input_bam_dir> [OPTIONS]
+# run_pipeline.sh - Master script for SMN CNV Detection Pipeline (V2/V3)
+# Usage: ./run_pipeline.sh <input_bam_dir> [OPTIONS]
 
 set -euo pipefail
 
@@ -23,8 +23,9 @@ SNP_FILE="$CONFIG_DIR/discriminating_snps.txt"
 CONTROL_GENES_FILE="$CONFIG_DIR/control_genes.bed"
 SEGMENTATION_PARAMS="$CONFIG_DIR/segmentation_params.yaml"
 
-# V3 Pipeline options
-VERSION_MODE="3"
+# Default V3 options (can be overridden)
+DEFAULT_VERSION="3"
+VERSION_MODE="$DEFAULT_VERSION"
 ALGORITHMS="cbs,hmm"
 CONTROL_NORMALIZE=true
 HANDLE_MISSING_DATA=true
@@ -607,8 +608,60 @@ EOF
     print_success "V3 pipeline summary created: $summary_file"
 }
 
-# Function to show V3 usage
-show_v3_usage() {
+# Function to show unified usage (V2/V3)
+show_usage() {
+    cat << EOF
+SMN CNV Detection Pipeline - Unified V2/V3 Interface
+
+Usage: $0 <input_bam_dir> [OPTIONS]
+
+REQUIRED:
+    input_bam_dir       Directory containing BAM files to analyze
+
+VERSION CONTROL:
+    --version VERSION   Pipeline version: 2 (legacy) or 3 (advanced, default)
+    
+V3 ADVANCED OPTIONS (default when --version 3):
+    --algorithms LIST   Comma-separated algorithms: cbs,hmm (default: cbs,hmm)
+    --control-normalize Enable control gene normalization (default: enabled)
+    --control-genes LIST Control genes for normalization (default: auto-select)
+    --handle-missing    Enable missing data handling (default: enabled)
+    --interpolate-method Method for missing data: hmm,linear,knn,rf,median (default: hmm)
+    --consensus         Enable consensus calling (default: enabled)
+    --min-algorithms N  Minimum algorithms for consensus (default: 2)
+    --confidence FLOAT  Minimum confidence threshold (default: 0.7)
+
+STANDARD OPTIONS (V2/V3):
+    --config DIR        Configuration directory (default: $CONFIG_DIR)
+    --results DIR       Results directory (default: $RESULTS_DIR)
+    --sample-type TYPE  Sample type: reference, test, or auto (default: auto)
+    --skip-plots        Skip generating plots to speed up analysis
+    --verbose           Enable verbose output
+    --help              Show this help message
+
+V2 LEGACY MODE:
+    All V2 functionality preserved for backward compatibility
+    Use --version 2 to run original pipeline
+
+V3 EXAMPLES:
+    # V3 with all advanced features (default)
+    $0 /path/to/bam/files/
+    
+    # V3 optimized for missing exon 7 data
+    $0 /path/to/bam/files/ --interpolate-method hmm --handle-missing
+    
+    # V3 for clinical use with high confidence
+    $0 /path/to/bam/files/ --consensus --confidence 0.8 --min-algorithms 2
+    
+    # V2 legacy mode
+    $0 /path/to/bam/files/ --version 2
+    
+    # Fast V3 analysis
+    $0 /path/to/bam/files/ --skip-plots --algorithms hmm
+
+For detailed V3 documentation: see V3_OVERVIEW.md and V3_DEPLOYMENT_GUIDE.md
+EOF
+}
     cat << EOF
 SMN CNV Detection Pipeline V3 - Advanced Normalization & Segmentation Framework
 
@@ -699,11 +752,59 @@ For technical support or advanced configuration, refer to:
 EOF
 }
 
-# Parse V3 command line arguments
+# Function to create V2 summary
+create_v2_summary() {
+    print_info "Creating V2 pipeline summary..."
+    
+    local summary_file="$RESULTS_DIR/pipeline_summary.txt"
+    local sample_count=$(find "$INPUT_BAM_DIR" -name "*.bam" | wc -l)
+    
+    cat > "$summary_file" << EOF
+SMN CNV Detection Pipeline Summary (V2 Mode)
+============================================
+
+Pipeline Run Information:
+- Date: $(date)
+- Version: V2 (Legacy Mode)
+- Pipeline Directory: $PIPELINE_DIR
+- Configuration Directory: $CONFIG_DIR
+- Results Directory: $RESULTS_DIR
+- Input BAM Directory: $INPUT_BAM_DIR
+
+Configuration Files:
+- BED File: $BED_FILE
+- SNP Configuration: $SNP_FILE
+
+Sample Information:
+- Total BAM Files: $sample_count
+- Sample Type: $SAMPLE_TYPE
+
+V2 Output Files:
+- Depth Files: $RESULTS_DIR/depth/
+- Coverage Summary: $RESULTS_DIR/depth/coverage_summary.txt
+- Allele Counts: $RESULTS_DIR/allele_counts/allele_counts.txt
+- Z-scores: $RESULTS_DIR/normalized/z_scores.txt
+- Copy Numbers: $RESULTS_DIR/cnv_calls/copy_numbers.txt
+- Reports: $RESULTS_DIR/reports/
+
+Log Files:
+- All logs: $LOG_DIR/
+
+V2 Analysis Notes:
+- Z-score thresholds: ≤-2.5 (CN=0), -2.5 to -1.5 (CN=1), -1.5 to +1.5 (CN=2), +1.5 to +2.5 (CN=3), >+2.5 (CN=4+)
+- SMN1 homozygous deletion (CN=0) indicates potential SMA affected status
+- SMN1 heterozygous deletion (CN=1) indicates SMA carrier status
+
+For V3 advanced features, run with: --version 3
+EOF
+
+    print_success "V2 pipeline summary created: $summary_file"
+}
+# Parse command line arguments (unified V2/V3)
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help)
-            show_v3_usage
+            show_usage
             exit 0
             ;;
         --version)
@@ -714,12 +815,19 @@ while [[ $# -gt 0 ]]; do
             fi
             shift 2
             ;;
+        # V3-specific options
         --algorithms)
             ALGORITHMS="$2"
+            if [ "$VERSION_MODE" = "2" ]; then
+                print_warning "Algorithm selection ignored in V2 mode"
+            fi
             shift 2
             ;;
         --control-normalize)
             CONTROL_NORMALIZE=true
+            if [ "$VERSION_MODE" = "2" ]; then
+                print_warning "Control normalization not available in V2 mode"
+            fi
             shift
             ;;
         --no-control-normalize)
@@ -732,6 +840,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --handle-missing)
             HANDLE_MISSING_DATA=true
+            if [ "$VERSION_MODE" = "2" ]; then
+                print_warning "Missing data handling not available in V2 mode"
+            fi
             shift
             ;;
         --no-handle-missing)
@@ -744,6 +855,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --consensus)
             CONSENSUS_CALLING=true
+            if [ "$VERSION_MODE" = "2" ]; then
+                print_warning "Consensus calling not available in V2 mode"
+            fi
             shift
             ;;
         --no-consensus)
@@ -758,6 +872,7 @@ while [[ $# -gt 0 ]]; do
             CONFIDENCE_THRESHOLD="$2"
             shift 2
             ;;
+        # Standard options (V2/V3)
         --config)
             CONFIG_DIR="$2"
             BED_FILE="$CONFIG_DIR/smn_exons.bed"
@@ -789,7 +904,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -*)
             print_error "Unknown option: $1"
-            show_v3_usage
+            show_usage
             exit 1
             ;;
         *)
@@ -797,7 +912,7 @@ while [[ $# -gt 0 ]]; do
                 INPUT_BAM_DIR="$1"
             else
                 print_error "Multiple input directories specified"
-                show_v3_usage
+                show_usage
                 exit 1
             fi
             shift
@@ -808,132 +923,79 @@ done
 # Check if input directory was provided
 if [ -z "$INPUT_BAM_DIR" ]; then
     print_error "Input BAM directory is required"
-    show_v3_usage
+    show_usage
     exit 1
 fi
 
-# Check for legacy V2 mode
-if [ "$VERSION_MODE" = "2" ]; then
-    print_info "Running in V2 legacy mode"
-    # Call original V2 pipeline
-    exec bash "$SCRIPT_DIR/run_pipeline.sh" "$INPUT_BAM_DIR" "$@"
-fi
-
-# Main V3 pipeline execution
-main_v3() {
-    show_v3_banner
+# Main pipeline execution (unified V2/V3)
+main() {
+    # Show appropriate banner based on version
+    if [ "$VERSION_MODE" = "3" ]; then
+        show_v3_banner
+        print_v3 "Starting SMN CNV Detection Pipeline V3"
+        print_info "Advanced algorithms: $ALGORITHMS"
+        print_info "Control normalization: $CONTROL_NORMALIZE"
+        print_info "Missing data handling: $HANDLE_MISSING_DATA"
+        print_info "Consensus calling: $CONSENSUS_CALLING"
+    else
+        echo "SMN CNV Detection Pipeline - V2 Legacy Mode"
+        echo "============================================"
+        print_info "Running in V2 compatibility mode"
+    fi
     
-    print_v3 "Starting SMN CNV Detection Pipeline V3"
     print_info "Input BAM directory: $INPUT_BAM_DIR"
-    print_info "Advanced algorithms: $ALGORITHMS"
-    print_info "Control normalization: $CONTROL_NORMALIZE"
-    print_info "Missing data handling: $HANDLE_MISSING_DATA"
-    print_info "Consensus calling: $CONSENSUS_CALLING"
+    print_info "Results directory: $RESULTS_DIR"
+    print_info "Sample type: $SAMPLE_TYPE"
     
-    # V3 Pre-flight checks
-    check_v3_dependencies
-    validate_v3_config
-    setup_v3_directories
-    
-    # Execute V3 pipeline steps
-    local start_time=$(date +%s)
-    
-    # Run standard V2 steps first (depth extraction, coverage calculation, allele counting)
-    print_info "Running standard pipeline components..."
-    
-    # Depth extraction
-    print_info "Step 0a: Extracting read depth per exon..."
-    if ! bash "$BIN_DIR/extract_depth.sh" "$INPUT_BAM_DIR" "$BED_FILE" "$RESULTS_DIR/depth" "$SAMPLE_TYPE" 2>&1 | tee "$LOG_DIR/depth_extraction.log"; then
-        print_error "Depth extraction failed"
-        exit 1
-    fi
-    
-    # Coverage calculation
-    print_info "Step 0b: Calculating average coverage per exon..."
-    if ! python3 "$BIN_DIR/calculate_coverage.py" "$RESULTS_DIR/depth" "$BED_FILE" "$RESULTS_DIR/depth/coverage_summary.txt" 2>&1 | tee "$LOG_DIR/coverage_calculation.log"; then
-        print_error "Coverage calculation failed"
-        exit 1
-    fi
-    
-    # Allele counting
-    print_info "Step 0c: Performing allele-specific counting..."
-    local allele_cmd="python3 $BIN_DIR/allele_count.py $INPUT_BAM_DIR $SNP_FILE $RESULTS_DIR/allele_counts"
-    if [ "$SAMPLE_TYPE" != "auto" ]; then
-        allele_cmd="$allele_cmd --sample-type $SAMPLE_TYPE"
-    fi
-    if ! eval "$allele_cmd" 2>&1 | tee "$LOG_DIR/allele_counting.log"; then
-        print_error "Allele counting failed"
-        exit 1
-    fi
-    
-    # Execute V3 advanced steps
-    run_control_gene_analysis
-    handle_missing_data
-    run_cbs_segmentation
-    run_hmm_segmentation
-    run_consensus_calling
-    run_v3_quality_assessment
-    generate_v3_reports
-    
-    # Create comprehensive summary
-    create_v3_summary
-    
-    local end_time=$(date +%s)
-    local duration=$((end_time - start_time))
-    
-    print_success "SMN CNV Detection Pipeline V3 completed successfully!"
-    print_v3 "Total runtime: ${duration} seconds"
-    print_v3 "V3 results available in: $RESULTS_DIR"
-    
-    # Show V3 results summary
-    if [ -f "$RESULTS_DIR/consensus/consensus_calls.txt" ]; then
-        print_v3 "V3 Advanced Results Summary:"
-        python3 -c "
+    # Version-specific pre-flight checks and execution
+    if [ "$VERSION_MODE" = "3" ]; then
+        # V3 Pre-flight checks
+        check_v3_dependencies
+        validate_v3_config
+        setup_v3_directories
+        
+        # Execute V3 pipeline
+        main_v3
+    else
+        # V2 Pre-flight checks
+        check_dependencies
+        validate_config
+        setup_directories
+        
+        # Execute V2 pipeline
+        run_v2_pipeline
+        
+        print_success "SMN CNV Detection Pipeline V2 completed successfully!"
+        print_info "Results available in: $RESULTS_DIR"
+        
+        # Show V2 results summary
+        if [ -f "$RESULTS_DIR/cnv_calls/copy_numbers.txt" ]; then
+            print_info "Quick V2 Results Summary:"
+            python3 -c "
 import pandas as pd
 try:
-    # Consensus results
-    df = pd.read_csv('$RESULTS_DIR/consensus/consensus_calls.txt', sep='\t')
+    df = pd.read_csv('$RESULTS_DIR/cnv_calls/copy_numbers.txt', sep='\t')
     samples = df['sample_id'].unique()
-    print(f'  Analyzed {len(samples)} samples with consensus calling')
-    
-    if 'quality' in df.columns:
-        quality_counts = df['quality'].value_counts()
-        print('  Call quality distribution:')
-        for quality, count in quality_counts.items():
-            print(f'    {quality}: {count} calls')
-    
-    if 'algorithms_agree' in df.columns:
-        agreement_counts = df['algorithms_agree'].value_counts().sort_index()
-        print('  Algorithm agreement:')
-        for agreement, count in agreement_counts.items():
-            print(f'    {agreement} algorithms: {count} calls')
+    print(f'  Analyzed {len(samples)} samples')
     
     # SMN1 copy number distribution
-    smn1_data = df[df['copy_number'].notna()]
+    smn1_data = df[df['exon'].str.contains('SMN1')]
     if not smn1_data.empty:
         cn_counts = smn1_data['copy_number'].value_counts().sort_index()
-        print('  Copy number distribution:')
+        print('  SMN1 copy number distribution:')
         for cn, count in cn_counts.items():
-            print(f'    CN={cn}: {count} calls')
-
+            print(f'    CN={cn}: {count} samples')
 except Exception as e:
-    print(f'  Could not generate V3 summary: {e}')
+    print(f'  Could not generate summary: {e}')
 "
-    elif [ -f "$RESULTS_DIR/segmentation/hmm/hmm_segments.txt" ]; then
-        print_v3 "HMM Segmentation Results:"
-        python3 -c "
-import pandas as pd
-try:
-    df = pd.read_csv('$RESULTS_DIR/segmentation/hmm/hmm_segments.txt', sep='\t')
-    samples = df['sample_id'].unique()
-    print(f'  Analyzed {len(samples)} samples with HMM')
-    
-    if 'confidence' in df.columns:
-        high_conf = (df['confidence'] > 0.8).sum()
-        print(f'  High-confidence segments: {high_conf}')
-    
-    if 'num_missing' in df.columns:
-        missing_handled = (df['num_missing'] > 0).sum()
+        fi
+        
+        print_info "Individual reports: $RESULTS_DIR/reports/"
+    fi
+}
+
+# Execute main function
+main "$@" 0).sum()
         print(f'  Segments with missing data handled: {missing_handled}')
 
 except Exception as e:
