@@ -179,7 +179,7 @@ def interpret_cnv_results(cnv_df):
 def generate_summary_statistics(cnv_df, allele_df):
     """Generate summary statistics for the cohort"""
     logging.info("Generating summary statistics...")
-    
+
     stats = {
         'total_samples': len(cnv_df['sample_id'].unique()),
         'total_cnv_calls': len(cnv_df),
@@ -187,25 +187,28 @@ def generate_summary_statistics(cnv_df, allele_df):
         'mean_confidence': cnv_df['confidence'].mean() if 'confidence' in cnv_df.columns else 0.5,
         'high_confidence_calls': len(cnv_df[cnv_df.get('confidence', 0.5) >= 0.8]) if 'confidence' in cnv_df.columns else 0
     }
-    
-    # SMN1-specific statistics
-    smn1_data = cnv_df[cnv_df.get('gene', 'SMN1').str.contains('SMN1', na=False)]
-    if len(smn1_data) > 0:
-        stats['smn1_calls'] = len(smn1_data)
-        stats['smn1_cn0_count'] = len(smn1_data[smn1_data['copy_number'] == 0])
-        stats['smn1_cn1_count'] = len(smn1_data[smn1_data['copy_number'] == 1])
-        stats['smn1_cn2_count'] = len(smn1_data[smn1_data['copy_number'] == 2])
-        
-        # Calculate potential SMA risk
-        stats['high_risk_samples'] = stats['smn1_cn0_count']
-        stats['carrier_samples'] = stats['smn1_cn1_count']
-        stats['low_risk_samples'] = stats['smn1_cn2_count']
-    
+
+    # SMN1-specific statistics — only if gene column exists
+    if 'gene' in cnv_df.columns:
+        smn1_mask = cnv_df['gene'].astype(str).str.contains('SMN1', na=False)
+        smn1_data = cnv_df[smn1_mask]
+
+        if len(smn1_data) > 0:
+            stats['smn1_calls'] = len(smn1_data)
+            stats['smn1_cn0_count'] = int((smn1_data['copy_number'] == 0).sum())
+            stats['smn1_cn1_count'] = int((smn1_data['copy_number'] == 1).sum())
+            stats['smn1_cn2_count'] = int((smn1_data['copy_number'] == 2).sum())
+
+            # Calculate potential SMA risk
+            stats['high_risk_samples'] = stats['smn1_cn0_count']
+            stats['carrier_samples'] = stats['smn1_cn1_count']
+            stats['low_risk_samples'] = stats['smn1_cn2_count']
+
     # Allele count statistics
     if allele_df is not None and len(allele_df) > 0:
         stats['total_snp_calls'] = len(allele_df)
         stats['mean_coverage_per_snp'] = allele_df['total_count'].mean()
-    
+
     return stats
 
 def create_text_report(cnv_df, allele_df, interpretations_df, stats, output_file):
